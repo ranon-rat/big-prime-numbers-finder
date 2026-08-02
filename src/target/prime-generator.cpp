@@ -4,8 +4,8 @@
 #include "channels.hpp"
 #include <cstdint>
 #include <future>
-#include <iostream>
 
+#include <print>
 #include <vector>
 
 // now the idea is to do it through a series of batches
@@ -41,24 +41,26 @@ struct ErathostonesBatches {
       numbers[i] = start_from + i;
     }
 
-    // std::iota(numbers.begin(), numbers.end(), start_from);
     // first of all we need to verify from the beginning
     Channel<LastVisited> from_old_channel(batch_size);
     Channel<LastVisited> new_channel(batch_size);
+    // i am using multi threading to dont get slown down when writting to the
+    // disk and reading from the disk
     auto new_thread =
         std::async(std::launch::async, [&start_from, &DB, &new_channel]() { //
           DB.WriteToNew(start_from, new_channel);
         });
     auto from_old_t =
         std::async(std::launch::async, [&DB, &from_old_channel]() {
-          std::cout << "starting old thread\n";
           DB.ReadFromOld(from_old_channel);
         });
+
     while (from_old_channel.expect_more()) {
+      // just something that waits for more :)
       from_old_channel.wait_until_values_or_closed();
-      if (from_old_channel.is_closed() && from_old_channel.is_empty()) {
+      if (from_old_channel.is_closed() && from_old_channel.is_empty())
         break;
-      }
+
       /// this is just to know if we can verify this specific batch with a
       /// prime previously discovered
 
@@ -78,11 +80,12 @@ struct ErathostonesBatches {
       new_channel.send(prime);
       total_found++;
     }
-
+    // this just checks the ones that havent been visited yet and adds them to
+    // the list
     for (BigInts i{0}; i < batch_to_use; i = i + 1) {
-      if (numbers_states[i.ToSize()] || numbers[i.ToSize()] <= 1) {
+      if (numbers_states[i.ToSize()] || numbers[i.ToSize()] <= 1)
         continue;
-      }
+
       BigInts current_prime = numbers[i.ToSize()];
       BigInts last_visited = start_from + i;
       for (BigInts j{i + current_prime}; j < batch_to_use;
@@ -110,8 +113,9 @@ struct ErathostonesBatches {
       uint32_t batch_to_use =
           (BigInts(batch_size) > n - i ? n - 1 : batch_size).ToSize();
       auto result = find_in_batch(i + 1, batch_to_use);
-      std::cout << "batch " << i.ToString() << " total primes "
-                << result.total_found + result.new_found << "\n";
+      std::println("batch: {} total primes: {}", i.ToString(),
+                   result.total_found + result.new_found);
+
       if (last_from % 10 == 0) {
         last_from = 0;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));

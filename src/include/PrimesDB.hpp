@@ -24,9 +24,8 @@ class PrimeNumberDB {
 
 public:
   PrimeNumberDB(BigInts current_batch) {
-    if (fs::create_directories(directory)) {
-      std::cout << "Directory created successfully.\n";
-    }
+    fs::create_directories(directory);
+
     for (const auto &entry : fs::directory_iterator(directory)) {
       old_file_p = entry;
       break;
