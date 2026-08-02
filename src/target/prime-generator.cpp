@@ -8,9 +8,6 @@
 
 #include <vector>
 
-struct NumberProperties {
-  bool already_visited = false;
-};
 // now the idea is to do it through a series of batches
 
 struct ErathostonesBatches {
@@ -32,10 +29,17 @@ struct ErathostonesBatches {
     using std::vector;
     // i am a fucking retard i forgot to fill the shit
     vector<BigInts> numbers(batch_to_use);
+    // using the uint8_t because the commitee is fucking retarded and i cannot
+    // simply use std::vector because those retards said "oh yeah we should
+    // totally use a fucking string of bits to store the bytes, what a great
+    // idea "
+    // fucking retards
+    vector<uint8_t> numbers_states(batch_to_use);
+
     for (uint32_t i{0}; i < batch_to_use; i++) {
+      numbers_states[i] = false;
       numbers[i] = start_from + i;
     }
-    vector<NumberProperties> numbers_states(batch_to_use);
 
     // std::iota(numbers.begin(), numbers.end(), start_from);
     // first of all we need to verify from the beginning
@@ -67,7 +71,7 @@ struct ErathostonesBatches {
         // makes it easier
         for (BigInts j{prime.last_visited + prime.number - (start_from)};
              j < batch_to_use; j = j + prime.number) {
-          numbers_states[j.ToSize()].already_visited = true;
+          numbers_states[j.ToSize()] = true;
           prime.last_visited = start_from + j;
         }
       }
@@ -76,15 +80,14 @@ struct ErathostonesBatches {
     }
 
     for (BigInts i{0}; i < batch_to_use; i = i + 1) {
-      if (numbers_states[i.ToSize()].already_visited ||
-          numbers[i.ToSize()] <= 1) {
+      if (numbers_states[i.ToSize()] || numbers[i.ToSize()] <= 1) {
         continue;
       }
       BigInts current_prime = numbers[i.ToSize()];
       BigInts last_visited = start_from + i;
       for (BigInts j{i + current_prime}; j < batch_to_use;
            j = j + current_prime) {
-        numbers_states[j.ToSize()].already_visited = true;
+        numbers_states[j.ToSize()] = true;
         last_visited = start_from + j;
       }
 
