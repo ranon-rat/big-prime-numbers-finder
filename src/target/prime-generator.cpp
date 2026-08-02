@@ -50,8 +50,6 @@ struct ErathostonesBatches {
           std::cout << "starting old thread\n";
           DB.ReadFromOld(from_old_channel);
         });
-    std::cout << std::format("can expect more? {}\n",
-                             from_old_channel.expect_more());
     while (from_old_channel.expect_more()) {
       from_old_channel.wait_until_values_or_closed();
       if (from_old_channel.is_closed() && from_old_channel.is_empty()) {
@@ -104,12 +102,18 @@ struct ErathostonesBatches {
     };
   }
   void find_primes(BigInts n) {
+    uint32_t last_from = 1;
     for (BigInts i{0}; i < n; i = i + batch_size) {
       uint32_t batch_to_use =
           (BigInts(batch_size) > n - i ? n - 1 : batch_size).ToSize();
       auto result = find_in_batch(i + 1, batch_to_use);
       std::cout << "batch " << i.ToString() << " total primes "
                 << result.total_found + result.new_found << "\n";
+      if (last_from % 10 == 0) {
+        last_from = 0;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      last_from++;
     }
   };
 };
